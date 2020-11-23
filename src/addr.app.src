@@ -1,0 +1,9 @@
+{application, addr,
+ [
+  {description, "ADDR Addresses Registry"},
+  {vsn, "0.11.0"},
+  {registered, []},
+  {applications, [kernel,stdlib]},
+  {mod, { addr, []}},
+  {env, []}
+ ]}.
