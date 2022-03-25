@@ -14,7 +14,7 @@ defmodule ADDR.Mixfile do
 
   def package do
     [
-      files: ~w(doc priv src mix.exs LICENSE),
+      files: ~w(doc lib priv src mix.exs LICENSE),
       licenses: ["ISC"],
       maintainers: ["Namdak Tonpa"],
       name: :addr,
@@ -28,7 +28,7 @@ defmodule ADDR.Mixfile do
 
   def deps() do
     [
-      {:ex_doc, "~> 0.11", only: :dev}
+      {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end
 end
