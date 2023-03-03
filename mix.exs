@@ -23,12 +23,12 @@ defmodule ADDR.Mixfile do
   end
 
   def application() do
-    [mod: {:addr, []}]
+    [mod: {ADDR, []}]
   end
 
   def deps() do
     [
-      {:ex_doc, ">= 0.0.0", only: :dev}
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
 end

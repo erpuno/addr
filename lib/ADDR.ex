@@ -1,3 +1,0 @@
-defmodule ADDR do
-end
-
