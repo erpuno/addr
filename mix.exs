@@ -28,6 +28,7 @@ defmodule ADDR.Mixfile do
 
   def deps() do
     [
+      {:kvs,    "~> 9.9.0", runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
