@@ -182,11 +182,13 @@ defmodule ADDR.Boot do
                   _::binary-size(5)>> ->
             feed = Process.get :feed, %{}
 
-            x0 = Map.get(feed, o)
-            x1 = Map.get(feed, [o,p] |> List.flatten |> Enum.join("/"))
-            x2 = Map.get(feed, [o,p,g] |> List.flatten |> Enum.join("/"))
-            x3 = Map.get(feed, [o,p,g,n] |> List.flatten |> Enum.join("/"))
-            x4 = Map.get(feed, [o,p,g,n,a] |> List.flatten |> Enum.join("/"))
+            trm = fn ("") -> []; (fd) -> fd end
+
+            x0 = trm.(Map.get(feed, o))
+            x1 = trm.(Map.get(feed, [o,p] |> List.flatten |> Enum.join("/")))
+            x2 = trm.(Map.get(feed, [o,p,g] |> List.flatten |> Enum.join("/")))
+            x3 = trm.(Map.get(feed, [o,p,g,n] |> List.flatten |> Enum.join("/")))
+            x4 = trm.(Map.get(feed, [o,p,g,n,a] |> List.flatten |> Enum.join("/")))
 
             feed4 = ["/АТОТТГ",x0,x1,x2,x3,x4] |> List.flatten |> Enum.join("/")
 
