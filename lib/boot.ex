@@ -5,7 +5,7 @@ defmodule ADDR.Boot do
   Record.defrecord(:writer, Record.extract(:writer, from_lib: "kvs/include/cursors.hrl"))
   Record.defrecord(:reader, Record.extract(:reader, from_lib: "kvs/include/cursors.hrl"))
   Record.defrecord(:atu,    Record.extract(:atu,    from: "include/atsu.hrl"))
-  Record.defrecord(:'Addr', Record.extract(:'Addr', from: "include/atsu.hrl"))
+  Record.defrecord(:'Addr', Record.extract(:'Addr',  from: "include/atsu.hrl"))
 
   @feed     Application.get_env(:addr, :feed, "/АТОТТГ")
   @registry Application.get_env(:addr, :register, :code.priv_dir(:addr) ++ '/katottg/katottg_29.11.2022.zip')
@@ -33,9 +33,104 @@ defmodule ADDR.Boot do
     '/katottg/address_BC_20.12.2021.zip',
     '/katottg/address_BK_20.12.2021.zip',
     '/katottg/address_BE_20.12.2021.zip',
-    '/katottg/address_BX_20.12.2021.zip']
+    '/katottg/address_BX_20.12.2021.zip'
+    ]
     |> Enum.map(fn region -> :code.priv_dir(:addr) ++ region end)
   )
+  @registry_upd Application.get_env(:addr, :address2, :code.priv_dir(:addr) ++ '/address/dcu_03.03.2023.zip')
+  @address_upd Application.get_env(:addr, :address2, [
+    '/address/dca0_03.03.2023.zip',
+    '/address/dca1_03.03.2023.zip',
+    '/address/dca2_03.03.2023.zip',
+    '/address/dca3_03.03.2023.zip',
+    '/address/dca4_03.03.2023.zip',
+    '/address/dca5_03.03.2023.zip',
+    '/address/dca6_03.03.2023.zip',
+    '/address/dca7_03.03.2023.zip',
+    '/address/dca8_03.03.2023.zip',
+    '/address/dca9_03.03.2023.zip'
+    ] |> Enum.map(fn index -> :code.priv_dir(:addr) ++ index end))
+
+  def boot2() do
+    case :kvs.get(:writer, @feed) do
+      {:ok, writer(count: count)} -> 
+        IO.puts("Address 2: #{inspect(count)}")
+      _ ->
+        normalize = fn s ->
+          s |> String.split("\"", trim: true) |> Enum.join("\u02BC")
+            |> :string.casefold
+            |> :string.trim
+        end
+
+        atus = fn (unquote(:'Addr')(kind: 70)) -> :skip
+                  (unquote(:'Addr')(id: id,
+                                    parent_id: pid,
+                                    name: name) = _add) ->
+          name = case name do "україна" -> String.trim_leading(@feed, "/");_ -> name end
+
+          feeds = Process.get(:feeds, %{})
+          feed = Map.get(feeds, pid, "")
+          feed = "#{feed}/#{name}"
+          Process.put(:feeds, Map.put(feeds, id, feed))
+        end
+
+        streets = fn ((unquote(:'Addr')(id: _id,
+                                       parent_id: pid,
+                                       name: name, 
+                                       kind: 70,
+                                       katottg: _katottg) = add)) ->
+          feeds = Process.get(:feeds, %{})
+          feed = Map.get(feeds, pid, "")
+          path = feed 
+            |> String.split([@feed, "/"], trim: true) 
+            |> Kernel.++([name])
+            |> Enum.join("\\")
+          unit = (unquote(:'Addr')(add, path: path))
+          :kvs.append(unit, feed)
+                     (_) -> :skip
+        end
+
+        {:ok, [{_,bin}]} = @registry_upd |> :zip.unzip([:memory])
+        IO.puts "Import administrative unit register: "
+        :binary.split(bin, ["\n", "\r\n", "\r"], [:global])
+          |> Stream.map(&String.split(&1,","))
+          |> Stream.flat_map(fn
+            [id,pid,_rid,name,_kid,katottg,_,_,_n,n,_,_] -> [unquote(:'Addr')(id: id,
+                                                              parent_id: pid,
+                                                              katottg: katottg,
+                                                              name: normalize.(name),
+                                                              kind: :erlang.binary_to_integer(n)
+                                                            )]
+                                                       _ -> []
+            end)
+          |> Enum.each(&atus.(&1))
+
+        part = fn file ->
+          IO.puts "Importing #{file}..."
+          feeds = Process.get(:feeds)
+          spawn(fn ->
+            Process.put(:feeds, feeds)
+            {:ok, [{_,bin}]} = file |> :zip.unzip([:memory])
+
+            :binary.split(bin, ["\n", "\r\n", "\r"], [:global])
+              |> Stream.map(&String.split(&1,","))
+              |> Stream.flat_map(fn
+                [id,pid,_rid,name,_kid,katottg,_,_,_n,n,_,_] -> [unquote(:'Addr')(id: id,
+                                                                  parent_id: pid,
+                                                                  katottg: katottg,
+                                                                  name: normalize.(name),
+                                                                  kind: :erlang.binary_to_integer(n)
+                                                                )]
+                                                           _ -> []
+                end)
+              |> Enum.each(&streets.(&1))
+            IO.puts "#{file} done."
+          end)
+        end
+
+        @address_upd |> Enum.each(&part.(&1))
+    end
+  end
 
   def boot() do
     case :kvs.get(:writer, @feed) do
@@ -63,7 +158,7 @@ defmodule ADDR.Boot do
             end)
           |> Enum.each(&level(&1))
 
-        addr_file = fn file ->
+        addr_file = fn file -> 
           feeds = Process.get(:feed)
           spawn(fn ->
             Process.put(:feed, feeds)
@@ -98,7 +193,6 @@ defmodule ADDR.Boot do
 
   def level(atu(id: code, name: name) = atu) do
     #//UA|ОО|РР|ГГГ|ППП|ММ|УУУУУ:
-    #IO.puts "#{inspect(is_binary(code))}"
     case code do
       <<"UA", o::binary-size(2), "00", "000", "000", "00", uid::binary-size(5)>> ->
         feed = Process.get :feed, %{}
@@ -155,7 +249,7 @@ defmodule ADDR.Boot do
         unit = atu(atu, id: code, code: uid)
         :kvs.append(unit, fee4)
 
-      <<"UA", o::binary-size(2), "00", "000", "000", _p::binary-size(2), uid::binary-size(5)>> ->
+      <<"UA", o::binary-size(2), "00", "000", "000", p::binary-size(2), uid::binary-size(5)>> ->
 
         feed = Process.get :feed, %{}
         fee0 = Map.get(feed, o)
@@ -173,7 +267,7 @@ defmodule ADDR.Boot do
     #//UA|ОО|РР|ГГГ|ППП|ММ|УУУУУ:
     case code do
       c when c in [<<>>,"0"] ->
-        case Process.get(:code) do
+        case Process.get(:code) do 
           nil -> :ok
           <<"UA", o::binary-size(2),
                   p::binary-size(2),
@@ -183,13 +277,12 @@ defmodule ADDR.Boot do
                   _::binary-size(5)>> ->
             feed = Process.get :feed, %{}
 
-            trm = fn ("") -> []; (fd) -> fd end
-
-            x0 = trm.(Map.get(feed, o))
-            x1 = trm.(Map.get(feed, [o,p] |> List.flatten |> Enum.join("/")))
-            x2 = trm.(Map.get(feed, [o,p,g] |> List.flatten |> Enum.join("/")))
-            x3 = trm.(Map.get(feed, [o,p,g,n] |> List.flatten |> Enum.join("/")))
-            x4 = trm.(Map.get(feed, [o,p,g,n,a] |> List.flatten |> Enum.join("/")))
+            trm = fn("") -> [];(fd) -> fd end
+            x0 = trm.(Map.get(feed, o, []))
+            x1 = trm.(Map.get(feed, [o,p] |> List.flatten |> Enum.join("/"), []))
+            x2 = trm.(Map.get(feed, [o,p,g] |> List.flatten |> Enum.join("/"), []))
+            x3 = trm.(Map.get(feed, [o,p,g,n] |> List.flatten |> Enum.join("/"), []))
+            x4 = trm.(Map.get(feed, [o,p,g,n,a] |> List.flatten |> Enum.join("/"), []))
 
             feed4 = ["/АТОТТГ",x0,x1,x2,x3,x4] |> List.flatten |> Enum.join("/")
 
