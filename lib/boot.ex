@@ -5,7 +5,7 @@ defmodule ADDR.Boot do
   Record.defrecord(:writer, Record.extract(:writer, from_lib: "kvs/include/cursors.hrl"))
   Record.defrecord(:reader, Record.extract(:reader, from_lib: "kvs/include/cursors.hrl"))
   Record.defrecord(:atu,    Record.extract(:atu,    from: "include/atsu.hrl"))
-  Record.defrecord(:'Addr', Record.extract(:'Addr',  from: "include/atsu.hrl"))
+  Record.defrecord(:'Addr', Record.extract(:'Addr', from: "include/atsu.hrl"))
 
   @feed     Application.get_env(:addr, :feed, "/АТОТТГ")
   @registry Application.get_env(:addr, :register, :code.priv_dir(:addr) ++ '/katottg/katottg_29.11.2022.zip')
