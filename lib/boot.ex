@@ -45,6 +45,7 @@ defmodule ADDR.Boot do
         normalize = fn s ->
           s |> String.split("\"", trim: true) |> Enum.join("\u02BC")
             |> :string.casefold
+            |> :string.trim
         end
 
         IO.puts("Import administrative unit register into #{inspect(@feed)} ..")
