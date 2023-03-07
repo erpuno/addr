@@ -5,40 +5,12 @@ defmodule ADDR.Boot do
   Record.defrecord(:writer, Record.extract(:writer, from_lib: "kvs/include/cursors.hrl"))
   Record.defrecord(:reader, Record.extract(:reader, from_lib: "kvs/include/cursors.hrl"))
   Record.defrecord(:atu,    Record.extract(:atu,    from: "include/atsu.hrl"))
-  Record.defrecord(:'Addr', Record.extract(:'Addr',  from: "include/atsu.hrl"))
+  Record.defrecord(:'Addr', Record.extract(:'Addr', from: "include/atsu.hrl"))
 
   @feed     Application.get_env(:addr, :feed, "/АТОТТГ")
   @registry Application.get_env(:addr, :register, :code.priv_dir(:addr) ++ '/katottg/katottg_29.11.2022.zip')
-  @address  Application.get_env(:addr, :addresses, [
-    '/katottg/address_BI_20.12.2021.zip',
-    '/katottg/address_AT_20.12.2021.zip',
-    '/katottg/address_AM_20.12.2021.zip',
-    '/katottg/address_AC_20.12.2021.zip',
-    '/katottg/address_AX_20.12.2021.zip',
-    '/katottg/address_AO_20.12.2021.zip',
-    '/katottg/address_AI_20.12.2021.zip',
-    '/katottg/address_BT_20.12.2021.zip',
-    '/katottg/address_BA_20.12.2021.zip',
-    '/katottg/address_CE_20.12.2021.zip',
-    '/katottg/address_AP_20.12.2021.zip',
-    '/katottg/address_BM_20.12.2021.zip',
-    '/katottg/address_AB_20.12.2021.zip',
-    '/katottg/address_CB_20.12.2021.zip',
-    '/katottg/address_BB_20.12.2021.zip',
-    '/katottg/address_CA_20.12.2021.zip',
-    '/katottg/address_AH_20.12.2021.zip',
-    '/katottg/address_BO_20.12.2021.zip',
-    '/katottg/address_BH_20.12.2021.zip',
-    '/katottg/address_AE_20.12.2021.zip',
-    '/katottg/address_BC_20.12.2021.zip',
-    '/katottg/address_BK_20.12.2021.zip',
-    '/katottg/address_BE_20.12.2021.zip',
-    '/katottg/address_BX_20.12.2021.zip'
-    ]
-    |> Enum.map(fn region -> :code.priv_dir(:addr) ++ region end)
-  )
-  @registry_upd Application.get_env(:addr, :address2, :code.priv_dir(:addr) ++ '/address/dcu_03.03.2023.zip')
-  @address_upd Application.get_env(:addr, :address2, [
+  @registry_upd Application.get_env(:addr, :units, :code.priv_dir(:addr) ++ '/address/dcu_03.03.2023.zip')
+  @address Application.get_env(:addr, :address, [
     '/address/dca0_03.03.2023.zip',
     '/address/dca1_03.03.2023.zip',
     '/address/dca2_03.03.2023.zip',
@@ -48,13 +20,18 @@ defmodule ADDR.Boot do
     '/address/dca6_03.03.2023.zip',
     '/address/dca7_03.03.2023.zip',
     '/address/dca8_03.03.2023.zip',
-    '/address/dca9_03.03.2023.zip'
+    '/address/dca9_03.03.2023.zip',
+    '/address/dca10_03.03.2023.zip',
+    '/address/dca11_03.03.2023.zip',
+    '/address/dca12_03.03.2023.zip',
+    '/address/dca13_03.03.2023.zip',
+    '/address/dca14_03.03.2023.zip'
     ] |> Enum.map(fn index -> :code.priv_dir(:addr) ++ index end))
 
-  def boot2() do
+  def boot() do
     case :kvs.get(:writer, @feed) do
-      {:ok, writer(count: count)} -> 
-        IO.puts("Address 2: #{inspect(count)}")
+      {:ok, writer(count: count)} ->
+        IO.puts("Address: #{inspect(count)}")
       _ ->
         normalize = fn s ->
           s |> String.split("\"", trim: true) |> Enum.join("\u02BC")
@@ -65,24 +42,36 @@ defmodule ADDR.Boot do
         atus = fn (unquote(:'Addr')(kind: 70)) -> :skip
                   (unquote(:'Addr')(id: id,
                                     parent_id: pid,
-                                    name: name) = _add) ->
+                                    name: name,
+                                    kind: kind) = add) ->
           name = case name do "україна" -> String.trim_leading(@feed, "/");_ -> name end
 
           feeds = Process.get(:feeds, %{})
           feed = Map.get(feeds, pid, "")
+          case kind do
+            60 ->
+              path = feed
+                |> String.split([@feed, "/"], trim: true)
+                |> Kernel.++([name])
+                |> Enum.join("\\")
+              unit = (unquote(:'Addr')(add, path: path))
+              :kvs.append(unit, feed)
+            _ ->
+              :skip
+          end
           feed = "#{feed}/#{name}"
           Process.put(:feeds, Map.put(feeds, id, feed))
         end
 
         streets = fn ((unquote(:'Addr')(id: _id,
                                        parent_id: pid,
-                                       name: name, 
+                                       name: name,
                                        kind: 70,
                                        katottg: _katottg) = add)) ->
           feeds = Process.get(:feeds, %{})
           feed = Map.get(feeds, pid, "")
-          path = feed 
-            |> String.split([@feed, "/"], trim: true) 
+          path = feed
+            |> String.split([@feed, "/"], trim: true)
             |> Kernel.++([name])
             |> Enum.join("\\")
           unit = (unquote(:'Addr')(add, path: path))
@@ -128,11 +117,11 @@ defmodule ADDR.Boot do
           end)
         end
 
-        @address_upd |> Enum.each(&part.(&1))
+        @address |> Enum.each(&part.(&1))
     end
   end
 
-  def boot() do
+  def registry() do
     case :kvs.get(:writer, @feed) do
       {:ok, writer(count: count)} ->
         IO.puts("Administrative unit loaded: #{inspect(count)}")
@@ -157,37 +146,6 @@ defmodule ADDR.Boot do
                                     _ -> []
             end)
           |> Enum.each(&level(&1))
-
-        addr_file = fn file -> 
-          feeds = Process.get(:feed)
-          spawn(fn ->
-            Process.put(:feed, feeds)
-
-            IO.puts "Importing #{inspect(file)} ..."
-            {:ok, [{_,bin}]} = file |> :zip.unzip([:memory])
-
-            :binary.split(bin, ["\n", "\r\n", "\r"], [:global])
-              |> Enum.map(&String.split(&1,";"))
-              |> Enum.flat_map(fn
-                ["DC_LOCALITY",_,_,_,"KATOTTG",_,_,_,_,_,_,"Path"] -> []
-                [id,pid,name,_,katottg,_,_,_,_,obj,abb,path] -> [unquote(:'Addr')(id: id,
-                                                                  parent_id: pid,
-                                                                  katottg: katottg,
-                                                                  name: normalize.(name),
-                                                                  abbreviation: abb,
-                                                                  loc_name: obj,
-                                                                  path: normalize.(path))]
-                                                    _ -> []
-                end)
-              |> Enum.each(&address(&1))
-            IO.puts("#{inspect(file)} done.")
-            Process.delete :feed
-            end)
-        end
-
-        @address |> Enum.each(&addr_file.(&1))
-
-        Process.delete :feed
     end
   end
 
@@ -249,7 +207,7 @@ defmodule ADDR.Boot do
         unit = atu(atu, id: code, code: uid)
         :kvs.append(unit, fee4)
 
-      <<"UA", o::binary-size(2), "00", "000", "000", p::binary-size(2), uid::binary-size(5)>> ->
+      <<"UA", o::binary-size(2), "00", "000", "000", _p::binary-size(2), uid::binary-size(5)>> ->
 
         feed = Process.get :feed, %{}
         fee0 = Map.get(feed, o)
