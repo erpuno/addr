@@ -43,22 +43,23 @@ defmodule ADDR.Boot do
                   (unquote(:'Addr')(id: id,
                                     parent_id: pid,
                                     name: name,
-                                    kind: kind) = add) ->
+                                    kind: _kind) = _add) ->
           name = case name do "україна" -> String.trim_leading(@feed, "/");_ -> name end
 
           feeds = Process.get(:feeds, %{})
           feed = Map.get(feeds, pid, "")
-          case kind do
-            60 ->
-              path = feed
-                |> String.split([@feed, "/"], trim: true)
-                |> Kernel.++([name])
-                |> Enum.join("\\")
-              unit = (unquote(:'Addr')(add, path: path))
-              :kvs.append(unit, feed)
-            _ ->
-              :skip
-          end
+          feed = String.trim_trailing("/")
+#          case kind do
+#            60 ->
+#              path = feed
+#                |> String.split([@feed, "/"], trim: true)
+#                |> Kernel.++([name])
+#                |> Enum.join("\\")
+#              unit = (unquote(:'Addr')(add, path: path))
+#              :kvs.append(unit, feed)
+#            _ ->
+#              :skip
+#          end
           feed = "#{feed}/#{name}"
           Process.put(:feeds, Map.put(feeds, id, feed))
         end
@@ -104,10 +105,11 @@ defmodule ADDR.Boot do
             :binary.split(bin, ["\n", "\r\n", "\r"], [:global])
               |> Stream.map(&String.split(&1,","))
               |> Stream.flat_map(fn
-                [id,pid,_rid,name,_kid,katottg,_,_,_n,n,_,_] -> [unquote(:'Addr')(id: id,
+                [id,pid,_rid,name,_kid,katottg,_,_,_n,n,abbr,_] -> [unquote(:'Addr')(id: id,
                                                                   parent_id: pid,
                                                                   katottg: katottg,
                                                                   name: normalize.(name),
+                                                                  abbreviation: abbr,
                                                                   kind: :erlang.binary_to_integer(n)
                                                                 )]
                                                            _ -> []
