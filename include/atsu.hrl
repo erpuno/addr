@@ -29,17 +29,17 @@
 % Address
 -record('Addr', {
       id            = [] :: [] | binary(), %# guid
-      parent_id     = [] :: [] | binary(), %# guid, мусор
+      parent_id     = [] :: [] | binary(), %# guid батьківської одиниці
       name          = [] :: [] | binary(), %# власна назва
       koatuu        = [] :: [] | binary(), %# коатуу ідентифікатор. застаріле
       katottg       = [] :: [] | binary(), %# катоттг ідентифікатор
       post_code     = [] :: [] | binary(), %# мусор
       ukr_post      = [] :: [] | binary(), %# мусор
-      kind          = [] :: [] | number(), %# якийсь номер. мусор
+      kind          = [] :: [] | number(), %# код типу об'єкту
       abbreviation  = [] :: [] | binary(), %# скорочення типу об'єкту (вул., пров.)
-      loc_id        = [] :: [] | binary(), %# мусор
+      loc_id        = [] :: [] | binary(), %# guid
       loc_name      = [] :: [] | binary(), %# повний тип об'єкту (вулиця, провулок)
-      path          = [] :: [] | binary(), %# шлях? шлях це фід. мусор
+      path          = [] :: [] | binary(), %# повна адреса
       house_numbers = [] :: [] | list()    %# номери будинків. нема номерів
   }).
 

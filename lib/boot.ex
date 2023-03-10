@@ -9,23 +9,37 @@ defmodule ADDR.Boot do
 
   @feed     Application.get_env(:addr, :feed, "/АТОТТГ")
   @registry Application.get_env(:addr, :register, :code.priv_dir(:addr) ++ '/katottg/katottg_29.11.2022.zip')
-  @registry_upd Application.get_env(:addr, :units, :code.priv_dir(:addr) ++ '/address/dcu_03.03.2023.zip')
+  @registry_upd Application.get_env(:addr, :units, :code.priv_dir(:addr) ++ '/address/dcu_10.03.2023.zip')
   @address Application.get_env(:addr, :address, [
-    '/address/dca0_03.03.2023.zip',
-    '/address/dca1_03.03.2023.zip',
-    '/address/dca2_03.03.2023.zip',
-    '/address/dca3_03.03.2023.zip',
-    '/address/dca4_03.03.2023.zip',
-    '/address/dca5_03.03.2023.zip',
-    '/address/dca6_03.03.2023.zip',
-    '/address/dca7_03.03.2023.zip',
-    '/address/dca8_03.03.2023.zip',
-    '/address/dca9_03.03.2023.zip',
-    '/address/dca10_03.03.2023.zip',
-    '/address/dca11_03.03.2023.zip',
-    '/address/dca12_03.03.2023.zip',
-    '/address/dca13_03.03.2023.zip',
-    '/address/dca14_03.03.2023.zip'
+    '/address/dca10_10.03.2023.zip',
+    '/address/dca16_10.03.2023.zip',
+    '/address/dca21_10.03.2023.zip',
+    '/address/dca27_10.03.2023.zip',
+    '/address/dca5_10.03.2023.zip',
+    '/address/dca11_10.03.2023.zip',
+    '/address/dca17_10.03.2023.zip',
+    '/address/dca22_10.03.2023.zip',
+    '/address/dca28_10.03.2023.zip',
+    '/address/dca6_10.03.2023.zip',
+    '/address/dca12_10.03.2023.zip',
+    '/address/dca18_10.03.2023.zip',
+    '/address/dca23_10.03.2023.zip',
+    '/address/dca29_10.03.2023.zip',
+    '/address/dca7_10.03.2023.zip',
+    '/address/dca13_10.03.2023.zip',
+    '/address/dca19_10.03.2023.zip',
+    '/address/dca24_10.03.2023.zip',
+    '/address/dca2_10.03.2023.zip',
+    '/address/dca8_10.03.2023.zip',
+    '/address/dca14_10.03.2023.zip',
+    '/address/dca1_10.03.2023.zip',
+    '/address/dca25_10.03.2023.zip',
+    '/address/dca3_10.03.2023.zip',
+    '/address/dca9_10.03.2023.zip',
+    '/address/dca15_10.03.2023.zip',
+    '/address/dca20_10.03.2023.zip',
+    '/address/dca26_10.03.2023.zip',
+    '/address/dca4_10.03.2023.zip'
     ] |> Enum.map(fn index -> :code.priv_dir(:addr) ++ index end))
 
   def boot() do
@@ -48,18 +62,7 @@ defmodule ADDR.Boot do
 
           feeds = Process.get(:feeds, %{})
           feed = Map.get(feeds, pid, "")
-          feed = String.trim_trailing("/")
-#          case kind do
-#            60 ->
-#              path = feed
-#                |> String.split([@feed, "/"], trim: true)
-#                |> Kernel.++([name])
-#                |> Enum.join("\\")
-#              unit = (unquote(:'Addr')(add, path: path))
-#              :kvs.append(unit, feed)
-#            _ ->
-#              :skip
-#          end
+          feed = String.trim_trailing(feed, "/")
           feed = "#{feed}/#{name}"
           Process.put(:feeds, Map.put(feeds, id, feed))
         end
@@ -69,15 +72,17 @@ defmodule ADDR.Boot do
                                        name: name,
                                        kind: 70,
                                        katottg: _katottg) = add)) ->
-          feeds = Process.get(:feeds, %{})
-          feed = Map.get(feeds, pid, "")
-          path = feed
-            |> String.split([@feed, "/"], trim: true)
-            |> Kernel.++([name])
-            |> Enum.join("\\")
-          unit = (unquote(:'Addr')(add, path: path))
-          :kvs.append(unit, feed)
-                     (_) -> :skip
+            feeds = Process.get(:feeds, %{})
+            feed = Map.get(feeds, pid, "")
+            feed = String.trim_trailing(feed, "/")
+            path = feed
+              |> String.split([@feed, "/"], trim: true)
+              |> Kernel.++([name])
+              |> Enum.join("\\")
+
+            unit = (unquote(:'Addr')(add, path: path))
+            :kvs.append(unit, feed)
+          (_) ->:skip
         end
 
         {:ok, [{_,bin}]} = @registry_upd |> :zip.unzip([:memory])
@@ -85,13 +90,20 @@ defmodule ADDR.Boot do
         :binary.split(bin, ["\n", "\r\n", "\r"], [:global])
           |> Stream.map(&String.split(&1,","))
           |> Stream.flat_map(fn
-            [id,pid,_rid,name,_kid,katottg,_,_,_n,n,_,_] -> [unquote(:'Addr')(id: id,
-                                                              parent_id: pid,
-                                                              katottg: katottg,
-                                                              name: normalize.(name),
-                                                              kind: :erlang.binary_to_integer(n)
-                                                            )]
-                                                       _ -> []
+            [id,pid,name,_,katottg,_,n,_,_,abbr] ->
+              try do
+                [unquote(:'Addr')(id: id,
+                  parent_id: pid,
+                  katottg: katottg,
+                  name: normalize.(name),
+                  abbreviation: abbr,
+                  kind: :erlang.binary_to_integer(n)
+                )]
+                rescue _e ->
+                  IO.puts "broken record #{id} - #{pid}"
+                  []
+                end
+            _ -> []
             end)
           |> Enum.each(&atus.(&1))
 
@@ -105,14 +117,20 @@ defmodule ADDR.Boot do
             :binary.split(bin, ["\n", "\r\n", "\r"], [:global])
               |> Stream.map(&String.split(&1,","))
               |> Stream.flat_map(fn
-                [id,pid,_rid,name,_kid,katottg,_,_,_n,n,abbr,_] -> [unquote(:'Addr')(id: id,
-                                                                  parent_id: pid,
-                                                                  katottg: katottg,
-                                                                  name: normalize.(name),
-                                                                  abbreviation: abbr,
-                                                                  kind: :erlang.binary_to_integer(n)
-                                                                )]
-                                                           _ -> []
+                [id,pid,name,_,_,katottg,n,_,_,abbr] ->
+                  try do
+                    [unquote(:'Addr')(id: id,
+                      parent_id: pid,
+                      katottg: katottg,
+                      name: normalize.(name),
+                      abbreviation: abbr,
+                      kind: :erlang.binary_to_integer(n)
+                    )]
+                    rescue _e ->
+                      IO.puts "broken record #{id} #{pid} #{file}"
+                      []
+                    end
+               _ -> []
                 end)
               |> Enum.each(&streets.(&1))
             IO.puts "#{file} done."
