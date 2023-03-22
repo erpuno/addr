@@ -43,7 +43,7 @@ defmodule ADDR.Boot do
     ] |> Enum.map(fn index -> :code.priv_dir(:addr) ++ index end))
 
   def boot() do
-    case :kvs.get(:writer, @feed) do
+    case :kvs.get(:writer, "#{@feed}/чернігівська/чернігівський/чернігівська/чернігів") do
       {:ok, writer(count: count)} ->
         IO.puts("Address: #{inspect(count)}")
       _ ->
