@@ -48,7 +48,7 @@ defmodule ADDR.Boot do
         IO.puts("Address: #{inspect(count)}")
       _ ->
         normalize = fn s ->
-          s |> String.split("\"", trim: true) |> Enum.join("\u02BC")
+          s |> String.split(["\"", "\’"], trim: true) |> Enum.join("\u02BC")
             |> :string.casefold
             |> :string.trim
         end
